@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>집중 타이머</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="집중">
+<meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link id="icon" rel="icon">
+<link id="appleIcon" rel="apple-touch-icon">
+<link id="manifest" rel="manifest">
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#1b1d24;--sub:#6b7080;--line:#e4e6ee;--accent:#5b6cff;--accent2:#22c55e;--warn:#f97316;--danger:#ef4444;--ring:#e8eaf3}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b22;--text:#eef0f6;--sub:#9096a8;--line:#272b35;--accent:#7c8aff;--ring:#252935}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);max-width:560px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+h1{font-size:20px;margin:0;font-weight:700}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:60px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:15px;font-weight:600}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+label{font-size:13px;color:var(--sub);display:block;margin:10px 0 6px}
+input,select{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 12px;font-size:16px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.ringwrap{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:8px auto}
+.ringwrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringwrap circle{fill:none;stroke-width:12}
+#ringBg{stroke:var(--ring)}#ring{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .3s linear}
+.break #ring{stroke:var(--accent2)}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#time{font-size:clamp(48px,15vw,68px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+#phase{font-size:14px;color:var(--sub);margin-top:2px}#taskShow{font-size:15px;margin-top:6px;max-width:80%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.controls{display:flex;gap:10px;margin-top:8px}
+.controls button{flex:1;min-height:56px;border-radius:16px;border:none;font-size:17px;font-weight:700}
+.primary{background:var(--accent);color:#fff}.ghost{background:var(--ring);color:var(--text)}.danger{background:transparent;border:1px solid var(--danger)!important;color:var(--danger)}
+button:disabled{opacity:.4}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--sub)}
+#chart{width:100%;height:150px;display:block}
+.log{list-style:none;padding:0;margin:0}.log li{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.log li:last-child{border:none}.tag{font-size:12px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.ok{background:#22c55e22;color:var(--accent2)}.int{background:#f9731622;color:var(--warn)}
+.muted{color:var(--sub);font-size:13px}
+.distract{display:flex;justify-content:center;gap:14px;font-size:13px;color:var(--warn);min-height:18px;margin-top:4px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:9}
+.modal.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 20px);max-height:90vh;overflow:auto}
+.sheet h2{margin:0 0 10px;font-size:20px}.sheet .big{font-size:40px;text-align:center;margin:6px 0}
+.sheet button{width:100%;min-height:50px;border-radius:14px;border:none;font-size:16px;font-weight:600;margin-top:10px}
+.toggle{display:flex;justify-content:space-between;align-items:center;min-height:48px;border-bottom:1px solid var(--line)}
+.toggle input{width:24px;min-height:24px}
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.sumgrid div{background:var(--bg);border-radius:12px;padding:10px;text-align:center}.sumgrid b{display:block;font-size:18px}
+</style>
+</head>
+<body>
+<header><h1>📚 집중 타이머</h1><button class="icon-btn" id="openSettings" aria-label="설정">⚙️</button></header>
+
+<section class="card" id="setup">
+  <div class="seg" id="presets">
+    <button data-m="25" class="on">25분</button><button data-m="50">50분</button><button data-m="90">90분</button><button data-m="custom">직접</button>
+  </div>
+  <div class="row">
+    <div id="customWrap" style="display:none"><label for="customMin">집중 시간(분)</label><input id="customMin" type="number" inputmode="decimal" min="0.1" step="0.1" value="30"></div>
+    <div><label for="breakMin">휴식 시간(분)</label><input id="breakMin" type="number" inputmode="decimal" min="0" step="0.1" value="5"></div>
+  </div>
+  <label for="task">과목 / 할 일 (선택)</label>
+  <input id="task" type="text" maxlength="40" placeholder="예: 수학 문제집 3단원" list="taskList"><datalist id="taskList"></datalist>
+</section>
+
+<section class="card" id="timerCard">
+  <div class="ringwrap"><svg viewBox="0 0 120 120"><circle id="ringBg" cx="60" cy="60" r="52"/><circle id="ring" cx="60" cy="60" r="52"/></svg>
+    <div class="center"><div id="time">25:00</div><div id="phase">준비</div><div id="taskShow"></div></div></div>
+  <div class="distract" id="distractLive"></div>
+  <div class="controls">
+    <button class="primary" id="startBtn">시작</button>
+    <button class="ghost" id="resetBtn">초기화</button>
+  </div>
+  <div class="controls"><button class="danger" id="giveUpBtn" style="display:none;min-height:48px;font-size:15px">포기하기</button></div>
+</section>
+
+<section class="card">
+  <div class="stats">
+    <div class="stat"><b id="todayTotal">0분</b><span>오늘 집중</span></div>
+    <div class="stat"><b id="todayCount">0회</b><span>완료 세션</span></div>
+    <div class="stat"><b id="streak">0일</b><span>연속 기록 🔥</span></div>
+  </div>
+</section>
+
+<section class="card"><div class="muted" style="margin-bottom:6px">최근 7일 집중 시간</div><svg id="chart" viewBox="0 0 350 150" preserveAspectRatio="none"></svg></section>
+
+<section class="card"><div class="muted" style="margin-bottom:4px">오늘의 기록</div><ul class="log" id="log"></ul></section>
+
+<div class="modal" id="summaryModal"><div class="sheet">
+  <div class="big" id="sumEmoji">🎉</div><h2 id="sumTitle" style="text-align:center"></h2>
+  <p class="muted" id="sumMsg" style="text-align:center"></p>
+  <div class="sumgrid">
+    <div><b id="sumFocus"></b><span class="muted">집중 시간</span></div>
+    <div><b id="sumTask"></b><span class="muted">과목</span></div>
+    <div><b id="sumLeft"></b><span class="muted">화면 이탈 횟수</span></div>
+    <div><b id="sumAway"></b><span class="muted">이탈 시간</span></div>
+  </div>
+  <button class="primary" id="sumBreak">휴식 시작</button>
+  <button class="ghost" id="sumClose">닫기</button>
+</div></div>
+
+<div class="modal" id="settingsModal"><div class="sheet">
+  <h2>설정</h2>
+  <div class="toggle"><span>종료 알림음</span><input type="checkbox" id="optSound" checked></div>
+  <div class="toggle"><span>진동 (지원 기기)</span><input type="checkbox" id="optVibe" checked></div>
+  <div class="toggle"><span>휴식 자동 시작</span><input type="checkbox" id="optAutoBreak"></div>
+  <p class="muted">💡 iPhone: Safari 공유 버튼 → ‘홈 화면에 추가’로 앱처럼 사용할 수 있어요. 진동은 iOS Safari에서 지원되지 않을 수 있어요.</p>
+  <button class="ghost" id="exportBtn">기록 내보내기 (JSON)</button>
+  <button class="ghost" id="exportCsvBtn">기록 내보내기 (CSV)</button>
+  <button class="danger" id="resetData">모든 기록 삭제</button>
+  <button class="primary" id="closeSettings">닫기</button>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+// ---- icon & manifest (data URIs) ----
+const iconSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#5b6cff"/><circle cx="256" cy="276" r="150" fill="none" stroke="#fff" stroke-width="36"/><path d="M256 276V176" stroke="#fff" stroke-width="36" stroke-linecap="round"/><rect x="216" y="70" width="80" height="40" rx="14" fill="#fff"/></svg>`;
+const iconUri='data:image/svg+xml,'+encodeURIComponent(iconSvg);
+$('icon').href=iconUri;
+// iOS needs PNG for apple-touch-icon; render SVG to PNG via canvas
+try{const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=180;c.getContext('2d').drawImage(img,0,0,180,180);const png=c.toDataURL('image/png');$('appleIcon').href=png;}catch(e){}};img.src=iconUri;}catch(e){}
+try{const man={name:'집중 타이머',short_name:'집중',start_url:location.href.split('#')[0],display:'standalone',background_color:'#0f1115',theme_color:'#5b6cff',lang:'ko',icons:[{src:iconUri,sizes:'any',type:'image/svg+xml'}]};
+$('manifest').href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));}catch(e){}
+
+// ---- storage ----
+const KEY='studyTimer.v1';
+const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}};
+let db=Object.assign({sessions:[],settings:{sound:true,vibe:true,autoBreak:false,preset:25,custom:30,brk:5},active:null},load());
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
+const dayKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+// ---- state ----
+// active: {phase:'focus'|'break', total(ms), endAt, remaining, running, startedAt, task, leaves, awayMs, hiddenAt}
+let A=db.active;
+const R=2*Math.PI*52;$('ring').style.strokeDasharray=R;
+
+function focusMin(){const s=db.settings;return s.preset==='custom'?Math.max(0.1,parseFloat($('customMin').value)||25):s.preset}
+function breakMin(){return Math.max(0,parseFloat($('breakMin').value)||0)}
+function fmt(ms){const s=Math.max(0,Math.ceil(ms/1000));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')}
+function fmtMin(ms){const m=Math.round(ms/60000);if(ms>0&&m===0)return Math.round(ms/1000)+'초';return m>=60?Math.floor(m/60)+'시간 '+(m%60?m%60+'분':''):m+'분'}
+function remaining(){if(!A)return focusMin()*60000;return A.running?A.endAt-Date.now():A.remaining}
+
+function render(){
+  const rem=remaining(),total=A?A.total:focusMin()*60000;
+  $('time').textContent=fmt(rem);
+  $('ring').style.strokeDashoffset=R*(1-Math.min(1,Math.max(0,(total-rem)/total)));
+  $('timerCard').classList.toggle('break',!!A&&A.phase==='break');
+  $('phase').textContent=!A?'준비':A.phase==='focus'?(A.running?'집중 중':'일시정지'):(A.running?'휴식 중 ☕':'휴식 일시정지');
+  $('taskShow').textContent=A&&A.task?A.task:($('task').value||'');
+  $('startBtn').textContent=A&&A.running?'일시정지':(A?'계속':'시작');
+  $('giveUpBtn').style.display=A&&A.phase==='focus'?'block':'none';
+  $('distractLive').textContent=A&&A.phase==='focus'&&A.leaves?`📱 이탈 ${A.leaves}회 · ${fmtMin(A.awayMs)}`:'';
+  document.title=A&&A.running?fmt(rem)+' · 집중 타이머':'집중 타이머';
+  ['setup'].forEach(id=>$(id).style.opacity=A?.55:1);
+  document.querySelectorAll('#setup input,#presets button').forEach(e=>e.disabled=!!A);
+}
+function tick(){if(A&&A.running&&remaining()<=0)finish(true);render()}
+
+function start(){
+  if(!A){const ms=focusMin()*60000;A={phase:'focus',total:ms,remaining:ms,running:false,startedAt:Date.now(),task:$('task').value.trim(),leaves:0,awayMs:0,hiddenAt:null};unlockAudio();}
+  if(A.running){A.remaining=A.endAt-Date.now();A.running=false}
+  else{A.endAt=Date.now()+A.remaining;A.running=true;unlockAudio()}
+  persist();render();
+}
+function startBreak(){const ms=breakMin()*60000;if(!ms){A=null;persist();render();return}
+  A={phase:'break',total:ms,remaining:ms,endAt:Date.now()+ms,running:true,startedAt:Date.now()};persist();render()}
+function persist(){db.active=A;save()}
+function record(completed){
+  const focused=completed?A.total:A.total-(A.running?A.endAt-Date.now():A.remaining);
+  const s={id:Date.now(),start:A.startedAt,end:Date.now(),planned:A.total,focused:Math.max(0,focused),task:A.task||'',completed,leaves:A.leaves,awayMs:Math.round(A.awayMs)};
+  db.sessions.push(s);return s;
+}
+const MSG_OK=['훌륭해요! 한 세션을 끝까지 해냈어요 💪','집중력 최고! 잠깐 쉬고 또 가볼까요?','오늘도 한 걸음 성장했어요 🌱','폰을 이겨냈어요! 멋져요 👏','꾸준함이 실력이 됩니다. 수고했어요!'];
+const MSG_INT=['괜찮아요. 다음엔 조금 더 버텨봐요 🙂','시작한 것만으로도 의미 있어요. 다시 도전!','짧게라도 집중했어요. 다음 세션은 더 길게!'];
+function finish(completed){
+  if(!A)return;
+  if(A.phase==='break'){A=null;persist();alertEnd();render();if(!document.hidden)toast('휴식 끝! 다시 집중해볼까요? 📖');return}
+  if(A.hiddenAt){A.awayMs+=Date.now()-A.hiddenAt;A.hiddenAt=null}
+  const s=record(completed);A=null;persist();if(completed)alertEnd();
+  showSummary(s);refresh();
+}
+function giveUp(){if(!A||A.phase!=='focus')return;if(!confirm('정말 포기할까요? 중단된 세션으로 기록돼요.'))return;finish(false)}
+function reset(){
+  if(!A)return;
+  if(A.phase==='focus'&&(A.total-remaining())>=60000&&!confirm('진행 중인 세션을 초기화할까요? (1분 이상 진행되어 중단 기록으로 남아요)'))return;
+  if(A.phase==='focus'&&(A.total-remaining())>=60000){finish(false);return}
+  A=null;persist();render();
+}
+function showSummary(s){
+  const ok=s.completed,list=ok?MSG_OK:MSG_INT;
+  $('sumEmoji').textContent=ok?(s.leaves?'👍':'🎉'):'🌧️';
+  $('sumTitle').textContent=ok?'세션 완료!':'세션 중단됨';
+  $('sumMsg').textContent=list[Math.floor(Math.random()*list.length)]+(ok&&s.leaves===0?' 한 번도 화면을 떠나지 않았어요!':'');
+  $('sumFocus').textContent=fmtMin(s.focused);$('sumTask').textContent=s.task||'—';
+  $('sumLeft').textContent=s.leaves+'회';$('sumAway').textContent=fmtMin(s.awayMs)||'0분';
+  $('sumBreak').style.display=breakMin()>0?'block':'none';
+  $('summaryModal').classList.add('show');
+  if(ok&&db.settings.autoBreak&&breakMin()>0){$('summaryModal').classList.remove('show');startBreak();toast('자동으로 휴식을 시작했어요 ☕')}
+}
+function toast(t){const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#000c;color:#fff;padding:12px 18px;border-radius:14px;font-size:15px;z-index:20;max-width:90%';document.body.appendChild(d);setTimeout(()=>d.remove(),2800)}
+
+// ---- sound/vibe ----
+let ac=null;function unlockAudio(){try{if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(C)ac=new C()}if(ac&&ac.state==='suspended')ac.resume()}catch(e){}}
+function alertEnd(){
+  if(db.settings.sound&&ac){try{[0,0.25,0.5].forEach((t,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=[660,880,1046][i];o.connect(g);g.connect(ac.destination);const n=ac.currentTime+t;g.gain.setValueAtTime(0.0001,n);g.gain.exponentialRampToValueAtTime(0.3,n+0.02);g.gain.exponentialRampToValueAtTime(0.0001,n+0.22);o.start(n);o.stop(n+0.25)})}catch(e){}}
+  if(db.settings.vibe&&navigator.vibrate){try{navigator.vibrate([200,100,200,100,300])}catch(e){}}
+}
+
+// ---- visibility ----
+document.addEventListener('visibilitychange',()=>{
+  if(!A||A.phase!=='focus'||!A.running){if(!document.hidden)tick();return}
+  if(document.hidden){A.leaves++;A.hiddenAt=Date.now();persist()}
+  else{if(A.hiddenAt){A.awayMs+=Math.min(Date.now(),A.endAt)-A.hiddenAt;A.hiddenAt=null}persist();tick()}
+});
+window.addEventListener('pageshow',tick);
+
+// ---- stats ----
+function refresh(){
+  const today=dayKey(Date.now()),ss=db.sessions;
+  const todays=ss.filter(s=>dayKey(s.start)===today);
+  $('todayTotal').textContent=fmtMin(todays.reduce((a,s)=>a+s.focused,0));
+  $('todayCount').textContent=todays.filter(s=>s.completed).length+'회';
+  // streak: consecutive days with >=1 completed session, ending today or yesterday
+  const days=new Set(ss.filter(s=>s.completed).map(s=>dayKey(s.start)));
+  let st=0,d=new Date();d.setHours(12,0,0,0);if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
+  while(days.has(dayKey(d))){st++;d.setDate(d.getDate()-1)}
+  $('streak').textContent=st+'일';
+  // chart
+  const W=350,H=150,bars=[];const names=['일','월','화','수','목','금','토'];
+  for(let i=6;i>=0;i--){const x=new Date();x.setHours(12,0,0,0);x.setDate(x.getDate()-i);const k=dayKey(x);bars.push({k,l:i===0?'오늘':names[x.getDay()],v:ss.filter(s=>dayKey(s.start)===k).reduce((a,s)=>a+s.focused,0)/60000})}
+  const max=Math.max(30,...bars.map(b=>b.v)),bw=W/7;
+  const cs=getComputedStyle(document.documentElement);
+  $('chart').innerHTML=bars.map((b,i)=>{const h=Math.max(b.v>0?3:0,(b.v/max)*(H-44));const x=i*bw+bw*0.22,w=bw*0.56,y=H-22-h;
+    return `<rect x="${x}" y="${H-22-(H-44)}" width="${w}" height="${H-44}" rx="6" fill="${cs.getPropertyValue('--ring')}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${cs.getPropertyValue('--accent')}"/>`+
+    `<text x="${x+w/2}" y="${H-6}" font-size="12" text-anchor="middle" fill="${cs.getPropertyValue('--sub')}">${b.l}</text>`+(b.v>0?`<text x="${x+w/2}" y="${y-5}" font-size="11" text-anchor="middle" fill="${cs.getPropertyValue('--text')}">${b.v<1?'<1':Math.round(b.v)}</text>`:'')}).join('');
+  // log
+  const esc=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('log').innerHTML=todays.length?todays.slice().reverse().map(s=>{const t=new Date(s.start);
+    return `<li><div><div>${esc(s.task||'무제 세션')}</div><div class="muted">${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} · ${fmtMin(s.focused)}${s.leaves?` · 📱 ${s.leaves}회 이탈(${fmtMin(s.awayMs)})`:''}</div></div><span class="tag ${s.completed?'ok':'int'}">${s.completed?'완료':'중단'}</span></li>`}).join(''):'<li class="muted">아직 기록이 없어요. 첫 세션을 시작해볼까요?</li>';
+  // task suggestions
+  $('taskList').innerHTML=[...new Set(ss.map(s=>s.task).filter(Boolean))].slice(-10).map(t=>`<option value="${esc(t)}">`).join('');
+}
+
+// ---- UI wiring ----
+function applyPreset(){document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',String(db.settings.preset)===b.dataset.m));$('customWrap').style.display=db.settings.preset==='custom'?'block':'none'}
+document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{db.settings.preset=b.dataset.m==='custom'?'custom':+b.dataset.m;applyPreset();save();render()});
+$('customMin').value=db.settings.custom;$('breakMin').value=db.settings.brk;
+$('customMin').oninput=()=>{db.settings.custom=$('customMin').value;save();render()};
+$('breakMin').oninput=()=>{db.settings.brk=$('breakMin').value;save()};
+$('task').oninput=render;
+$('startBtn').onclick=start;$('resetBtn').onclick=reset;$('giveUpBtn').onclick=giveUp;
+$('sumClose').onclick=()=>$('summaryModal').classList.remove('show');
+$('sumBreak').onclick=()=>{$('summaryModal').classList.remove('show');startBreak()};
+$('openSettings').onclick=()=>$('settingsModal').classList.add('show');
+$('closeSettings').onclick=()=>$('settingsModal').classList.remove('show');
+[['optSound','sound'],['optVibe','vibe'],['optAutoBreak','autoBreak']].forEach(([id,k])=>{$(id).checked=!!db.settings[k];$(id).onchange=()=>{db.settings[k]=$(id).checked;save()}});
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$('exportBtn').onclick=()=>download('study-log-'+dayKey(Date.now())+'.json',JSON.stringify(db.sessions,null,2),'application/json');
+$('exportCsvBtn').onclick=()=>{const rows=[['시작','종료','과목','계획(분)','집중(분)','완료','이탈횟수','이탈(초)']].concat(db.sessions.map(s=>[new Date(s.start).toLocaleString('ko-KR'),new Date(s.end).toLocaleString('ko-KR'),s.task,(s.planned/60000).toFixed(1),(s.focused/60000).toFixed(1),s.completed?'Y':'N',s.leaves,Math.round(s.awayMs/1000)]));
+  download('study-log-'+dayKey(Date.now())+'.csv','\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv')};
+$('resetData').onclick=()=>{if(confirm('모든 기록을 삭제할까요? 되돌릴 수 없어요.')){db.sessions=[];A=null;persist();refresh();render();toast('기록을 삭제했어요')}};
+// URL hook for Shortcuts: index.html#start=25 or #start
+function hashCmd(){const m=location.hash.match(/start(?:=([\d.]+))?/);if(m&&!A){if(m[1]){db.settings.preset='custom';$('customMin').value=m[1];applyPreset()}start();history.replaceState(null,'',location.pathname+location.search)}}
+applyPreset();refresh();render();hashCmd();
+setInterval(tick,250);
+window.__studyTimer={get state(){return A},get db(){return db}};
+})();
+</script>
+</body>
+</html>
